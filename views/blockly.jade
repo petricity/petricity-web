@@ -1,0 +1,35 @@
+doctype
+html(lang="en")
+    head
+        meta(charset="utf-8")
+        script(type="text/javascript", src="/js/blockly/blockly_compressed.js")
+        script(type="text/javascript", src="/js/blockly/blocks_compressed.js")
+        script(type="text/javascript", src="/js/blockly/arduino_compressed.js")
+        script(type="text/javascript", src="/js/blockly/msg/js/en.js")
+        style.
+            html, body {
+                background-color: #fff;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                height: 100%;
+            }
+            .blocklySvg {
+                height: 100%;
+                width: 100%;
+            }
+        script.
+            function init() {
+                Blockly.inject(document.body, {
+                    trashcan: true,
+                    path: "/js/blockly/",
+                    toolbox: document.getElementById('toolbox')
+                });
+                // Let the top-level application know that Blockly is ready.
+                window.parent.blocklyLoaded(Blockly);
+            }
+  body(onload="init()")
+    xml#toolbox(style="display: none").
+        <block type="petricity_color"></block>
+        <block type="petricity_delay"></block>
+        <block type="petricity_move"></block>
