@@ -3,7 +3,21 @@ var code = "";
 /* The socket object */
 var socket = null;
 /* The ID of the serial extension */
-var petricityExtensionId = "lnfbhobkpcdfibfpjgmnopacfiabahkc";
+var petricityExtensionId = "pdahkboocacncinmpkjmkeelcabfcpoo";
+
+/* Send message to the petricity extension */
+var sendMessageToExtension = function sendMessageToExtension(arguments) {
+    if (!chrome.runtime) {
+        alert("Please install the petricity chrome extension.");
+        return;
+    }
+    chrome.runtime.sendMessage(petricityExtensionId, arguments,
+        function(response) {
+            /* When communication failed */
+            if (!response) console.log("communication to petricity extnsion failed: " + JSON.stringify(chrome.runtime.lastError));
+            else console.log("message from petricity extension: " + response.message);
+    });
+};
 
 /* For Petricity code evaluation */
 var evaluateCode = function evaluateCode() {
@@ -12,24 +26,26 @@ var evaluateCode = function evaluateCode() {
 
 /* For sening commands to the Petricity */
 var sendCommands = function(commands) {
-    /* Call to the petricity extension */
-    chrome.runtime.sendMessage(petricityExtensionId, {action: "commands", commands: commands},
-    function(response) {
-        if (!response.success) alert("fail");
-    });
+    sendMessageToExtension({action: "commands", commands: commands});
 };
 
 /* When code has changed */
 var onCodeChanged = function onCodeChanged() {
     var temp = Blockly.Arduino.workspaceToCode();
-    /* When the code didn't change */ 
-    if (code === temp) return;
+    /* Remove whitespace */
+    temp = temp.replace(/\n| /g, "");
     /* Replace functions with commands */
+    temp = temp.replace(/delay\(.*\)\;/g, "");
+    temp = temp.replace(/red\(\)/g, "sendCommands('r')");
+    temp = temp.replace(/blue\(\)/g, "sendCommands('b')");
     temp = temp.replace(/left\(\)/g, "sendCommands('a')");
     temp = temp.replace(/stop\(\)/g, "sendCommands('x')");
+    temp = temp.replace(/green\(\)/g, "sendCommands('g')");
     temp = temp.replace(/right\(\)/g, "sendCommands('d')");
     temp = temp.replace(/forward\(\)/g, "sendCommands('w')");
     temp = temp.replace(/backward\(\)/g, "sendCommands('s')");
+    /* When the code didn't change */ 
+    if (code === temp) return;
     /* Remember the code */
     code = temp;
     /* Evaluate the new code */
@@ -48,11 +64,8 @@ var sendCode = function sendCode() {
     $("#upload").attr("disabled", "disabled");
     $("#upload").html("Uploading...");
     socket.emit("save-petricity-code", Blockly.Arduino.workspaceToCode());
-    /* Call to the petricity extension */
-    chrome.runtime.sendMessage(petricityExtensionId, {action: "upload", code: Blockly.Arduino.workspaceToCode()},
-    function(response) {
-        if (!response.success) alert("fail");
-    });
+    /* Send message to the petricity extension */
+    sendMessageToExtension({action: "upload", code: Blockly.Arduino.workspaceToCode()});
 };
 
 /* Get a users code */
@@ -65,18 +78,20 @@ var showCode = function showCode() {
     alert(Blockly.Arduino.workspaceToCode());
 };
 
+/* Called once Blockly is fully loaded */
+var blocklyLoaded = function blocklyLoaded(blockly) {
+    window.Blockly = blockly;
+    /* Add on change listener */
+    Blockly.addChangeListener(onCodeChanged);
+}
+
 /* When DOM has been loaded */
 window.onload = function() {
-    /* Initialize blockly */
-    Blockly.inject(document.getElementById('blockly-div'), {
-        trashcan: true,
-        path: "/js/blockly/",
-        toolbox: document.getElementById('toolbox')
-    });
-    Blockly.addChangeListener(onCodeChanged);
-
     /* Initialize sockets */
     socket = io.connect();
+
+    /* Try to find and connect to a serial device */
+    sendMessageToExtension({action: "connect"});
 
     /*socket.on("receive-sensor-data", function(data) {
         var values = data.split(",");
@@ -86,12 +101,12 @@ window.onload = function() {
         $("#upload").html(sensorValues.toString());
     });*/
 
-    setTimeout(function() {
+    /*setTimeout(function() {
         setInterval(function() {
             //socket.emit("query-sensor-data");
             evaluateCode();
         }, 200);
-    }, 3000);
+    }, 3000);*/
 };
 
 /* When keydown on document */
