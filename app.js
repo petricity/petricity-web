@@ -18,6 +18,11 @@ app.get('/', function(req, res) {
     res.render('index');
 });
 
+/* Landingpage */
+app.get('/blockly', function(req, res) {
+    res.render('blockly');
+});
+
 /* Start the express server */
 var server = app.listen(process.env.PORT || 3000, function() {
     console.log("INFO", "express server listening on port:", process.env.PORT || 3000);
